@@ -1,0 +1,14 @@
+name: EnchantsHCN
+version: 0.0.1
+main: com.wish.EnchantsHCN
+author: wwishhdev
+description: Plugin de encantamientos personalizados
+commands:
+  enchantshcn:
+    description: Comando principal del plugin
+    usage: /<command> <enchant> [nivel]
+    aliases: [ehcn]
+  enchantshcnreload:
+    description: Recarga la configuración del plugin
+    usage: /<command>
+    aliases: [ehcnreload]

@@ -1,0 +1,22 @@
+messages:
+  prefix: "&8[&bEnchantsHCN&8]"
+  reload: "&aLa configuración ha sido recargada"
+  no-permission: "&cNo tienes permiso para usar este comando"
+  enchant-applied: "&aEncantamiento %enchant% %level% aplicado con éxito"
+  no-item: "&cDebes tener un item en la mano"
+  no-valid-enchant: "&cEncantamiento no válido"
+
+enchants:
+  soulbound:
+    name: "SoulBound"
+    enabled: true
+    max-level: 2
+    levels:
+      1:
+        chance: 50
+        lore: "&7SoulBound I"
+        description: "&7Tiene un &f50%&7 de probabilidad de conservar el item al morir"
+      2:
+        chance: 100
+        lore: "&7SoulBound II"
+        description: "&7Tiene un &f100%&7 de probabilidad de conservar el item al morir"
