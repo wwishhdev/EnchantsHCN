@@ -144,12 +144,15 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
 
                 // Verificar si el encantamiento se activa según la probabilidad
                 if (random.nextInt(100) < chance) {
-                    // El item se guarda
-                    keepItems.add(item);
+                    // Crear una copia del item sin el encantamiento SoulBound
+                    ItemStack itemCopy = item.clone();
+                    removeEnchant(itemCopy, "soulbound");
+
+                    // El item (sin SoulBound) se guarda
+                    keepItems.add(itemCopy);
+
                     // Eliminarlo de los drops
                     iterator.remove();
-                    // Remover el encantamiento ya que se activó
-                    removeEnchant(item, "soulbound");
                 }
             }
         }
@@ -172,8 +175,10 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
         ItemMeta meta = item.getItemMeta();
         List<String> lore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
 
+        // Remover encantamiento existente si ya existe
         removeEnchant(item, enchantName);
 
+        // Agregar el nuevo encantamiento
         String enchantLore = colorize(getConfig().getString("enchants." + enchantName + ".levels." + level + ".lore"));
         String enchantDescription = getConfig().getString("enchants." + enchantName + ".levels." + level + ".description");
 
@@ -192,16 +197,21 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             List<String> lore = meta.getLore();
             List<String> newLore = new ArrayList<>();
 
-            String basePath = "enchants." + enchantName + ".levels.";
+            for (String line : lore) {
+                boolean isEnchantmentLine = false;
 
-            for (int i = 1; i <= getConfig().getInt("enchants." + enchantName + ".max-level"); i++) {
-                String enchantLore = colorize(getConfig().getString(basePath + i + ".lore"));
-                String enchantDescription = colorize(getConfig().getString(basePath + i + ".description", ""));
+                for (int i = 1; i <= getConfig().getInt("enchants." + enchantName + ".max-level", 0); i++) {
+                    String enchantLore = colorize(getConfig().getString("enchants." + enchantName + ".levels." + i + ".lore", ""));
+                    String enchantDescription = colorize(getConfig().getString("enchants." + enchantName + ".levels." + i + ".description", ""));
 
-                for (String line : lore) {
-                    if (!line.equals(enchantLore) && !line.equals(enchantDescription)) {
-                        newLore.add(line);
+                    if (line.equals(enchantLore) || line.equals(enchantDescription)) {
+                        isEnchantmentLine = true;
+                        break;
                     }
+                }
+
+                if (!isEnchantmentLine) {
+                    newLore.add(line);
                 }
             }
 
