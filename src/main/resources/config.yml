@@ -9,18 +9,55 @@ messages:
   book-inventory-full: "&cTu inventario está lleno"
   book-applied: "&aHas aplicado el encantamiento %enchant% %level% al item"
   book-invalid-item: "&cNo puedes aplicar este encantamiento a este item"
+  pumpkin-placed: "&aHas colocado una calabaza en la cabeza de %player%"
+  pumpkin-received: "&c¡%player% te ha colocado una calabaza en la cabeza!"
+  helmet-inventory: "&aTu casco ha sido movido a tu inventario"
+  helmet-dropped: "&aTu casco ha sido tirado al suelo"
 
 enchants:
   soulbound:
     name: "SoulBound"
     enabled: true
     max-level: 2
+    restricted-items:
+      - 322
+      - "322:1"
+      - POTION
     levels:
       1:
         chance: 50
         lore: "&7SoulBound I"
-        description: "&7Tiene un &f50%&7 de probabilidad de conservar el item al morir"
+        description: ""
       2:
         chance: 100
         lore: "&7SoulBound II"
-        description: "&7Tiene un &f100%&7 de probabilidad de conservar el item al morir"
+        description: ""
+
+  halloweenefy:
+    name: "Halloweenefy"
+    enabled: true
+    max-level: 3
+    allowed-items:
+      - WOOD_SWORD
+      - STONE_SWORD
+      - IRON_SWORD
+      - GOLD_SWORD
+      - DIAMOND_SWORD
+      - WOOD_AXE
+      - STONE_AXE
+      - IRON_AXE
+      - GOLD_AXE
+      - DIAMOND_AXE
+    levels:
+      1:
+        chance: 10
+        lore: "&6Halloweenefy I"
+        description: ""
+      2:
+        chance: 20
+        lore: "&6Halloweenefy II"
+        description: ""
+      3:
+        chance: 30
+        lore: "&6Halloweenefy III"
+        description: ""

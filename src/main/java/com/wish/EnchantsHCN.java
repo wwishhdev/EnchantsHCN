@@ -7,19 +7,20 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 public class EnchantsHCN extends JavaPlugin implements Listener {
 
@@ -201,6 +202,13 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
                 return true;
             }
 
+            // Verificar que el item es compatible con el encantamiento
+            if (!isItemValidForEnchant(item, enchantName)) {
+                player.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                        getConfig().getString("messages.book-invalid-item")));
+                return true;
+            }
+
             // Aplicar encantamiento
             applyEnchant(item, enchantName, level);
             player.setItemInHand(item);
@@ -262,60 +270,223 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
     }
 
     @EventHandler
+    public void onEntityDamage(EntityDamageByEntityEvent event) {
+        // Verificar si el atacante es un jugador
+        if (!(event.getDamager() instanceof Player)) {
+            return;
+        }
+
+        // Verificar si el afectado es un jugador
+        if (!(event.getEntity() instanceof Player)) {
+            return;
+        }
+
+        Player attacker = (Player) event.getDamager();
+        Player victim = (Player) event.getEntity();
+
+        // Verificar si el atacante tiene un item en la mano
+        ItemStack weapon = attacker.getItemInHand();
+        if (weapon == null || weapon.getType() == Material.AIR) {
+            return;
+        }
+
+        // Verificar si el arma tiene el encantamiento Halloweenefy
+        if (hasHalloweenefyEnchant(weapon)) {
+            int level = getHalloweenefyLevel(weapon);
+            int chance = getConfig().getInt("enchants.halloweenefy.levels." + level + ".chance");
+
+            // Verificar si el encantamiento se activa según la probabilidad
+            if (random.nextInt(100) < chance) {
+                // Aplicar efecto de calabaza
+                applyPumpkinEffect(attacker, victim);
+            }
+        }
+    }
+
+    // Usamos prioridad HIGHEST para que nuestro evento se ejecute después de otros eventos
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) {
             return;
         }
 
         Player player = (Player) event.getWhoClicked();
-
-        // Verificar si el jugador está haciendo clic en su propio inventario
-        if (event.getClickedInventory() == null ||
-                (event.getClickedInventory().getType() != InventoryType.PLAYER &&
-                        event.getClickedInventory().getType() != InventoryType.CRAFTING)) {
-            return;
-        }
-
-        // Verificar si el jugador está arrastrando un libro encantado sobre un item
         ItemStack cursor = event.getCursor();
         ItemStack current = event.getCurrentItem();
 
-        if (cursor == null || current == null ||
-                cursor.getType() != Material.ENCHANTED_BOOK ||
-                current.getType() == Material.AIR) {
+        if (cursor == null || current == null) {
             return;
         }
 
-        // Verificar si el libro es un libro de encantamiento del plugin
-        String enchantName = getEnchantFromBook(cursor);
-        if (enchantName == null) {
+        // Verificar si se está usando un libro encantado
+        if (cursor.getType() != Material.ENCHANTED_BOOK || current.getType() == Material.AIR) {
             return;
         }
 
-        int level = getEnchantLevelFromBook(cursor, enchantName);
-        if (level <= 0) {
+        // Obtener información del encantamiento del libro
+        EnchantInfo info = getEnchantInfoFromBook(cursor);
+        if (info == null) {
             return;
         }
 
-        // Cancelar el evento para evitar que el libro se coloque en el slot
+        // Verificar si el item es compatible con el encantamiento
+        if (!isItemValidForEnchant(current, info.enchantName)) {
+            player.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                    getConfig().getString("messages.book-invalid-item")));
+            return;
+        }
+
+        // La detección de eventos funciona, ahora registremos un mensaje para verificar
+        getLogger().info("Detectado uso de libro encantado: " + info.enchantName + " nivel " + info.level);
+
+        // Cancelar el evento original
         event.setCancelled(true);
 
-        // Aplicar el encantamiento al item
+        // Crear copia del item para aplicar el encantamiento
         ItemStack itemCopy = current.clone();
-        applyEnchant(itemCopy, enchantName, level);
+        applyEnchant(itemCopy, info.enchantName, info.level);
 
-        // Actualizar el item en el inventario
+        // Actualizar el item en el inventario (establece el item modificado)
         event.setCurrentItem(itemCopy);
 
-        // Quitar el libro del cursor (consumirlo)
+        // Consumir el libro (quitar del cursor)
         player.setItemOnCursor(null);
 
-        // Mensaje de éxito
-        String enchantDisplayName = getConfig().getString("enchants." + enchantName + ".name");
+        // Mensaje al jugador
+        String enchantDisplayName = getConfig().getString("enchants." + info.enchantName + ".name");
         player.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
                 getConfig().getString("messages.book-applied")
                         .replace("%enchant%", enchantDisplayName)
-                        .replace("%level%", String.valueOf(level))));
+                        .replace("%level%", String.valueOf(info.level))));
+    }
+
+    /**
+     * Aplica el efecto de calabaza a un jugador
+     */
+    private void applyPumpkinEffect(Player attacker, Player victim) {
+        // Obtener el casco actual del jugador
+        ItemStack helmet = victim.getInventory().getHelmet();
+        ItemStack pumpkin = new ItemStack(Material.PUMPKIN, 1);
+
+        // Si el jugador tiene un casco, quitarlo y darle una calabaza
+        if (helmet != null && helmet.getType() != Material.AIR) {
+            // Guardar el casco en el inventario o tirarlo al suelo
+            if (victim.getInventory().firstEmpty() != -1) {
+                victim.getInventory().addItem(helmet);
+                victim.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                        getConfig().getString("messages.helmet-inventory")));
+            } else {
+                victim.getWorld().dropItem(victim.getLocation(), helmet);
+                victim.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                        getConfig().getString("messages.helmet-dropped")));
+            }
+        }
+
+        // Colocar la calabaza en la cabeza
+        victim.getInventory().setHelmet(pumpkin);
+
+        // Mensajes a los jugadores
+        attacker.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                getConfig().getString("messages.pumpkin-placed")
+                        .replace("%player%", victim.getName())));
+
+        victim.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                getConfig().getString("messages.pumpkin-received")
+                        .replace("%player%", attacker.getName())));
+    }
+
+    /**
+     * Verifica si un item es compatible con un encantamiento específico
+     */
+    private boolean isItemValidForEnchant(ItemStack item, String enchantName) {
+        if (enchantName.equals("soulbound")) {
+            // Verificar si el item está en la lista de items restringidos
+            List<String> restrictedItems = getConfig().getStringList("enchants.soulbound.restricted-items");
+            for (String restrictedItem : restrictedItems) {
+                if (restrictedItem.contains(":")) {
+                    // Formato con metadatos, ej: "322:1"
+                    String[] parts = restrictedItem.split(":");
+                    int id = Integer.parseInt(parts[0]);
+                    short data = Short.parseShort(parts[1]);
+
+                    if (item.getTypeId() == id && item.getDurability() == data) {
+                        return false;
+                    }
+                } else if (restrictedItem.matches("\\d+")) {
+                    // Formato numérico, ej: "322"
+                    int id = Integer.parseInt(restrictedItem);
+                    if (item.getTypeId() == id) {
+                        return false;
+                    }
+                } else {
+                    // Formato Material, ej: "POTION"
+                    try {
+                        Material material = Material.valueOf(restrictedItem);
+                        if (item.getType() == material) {
+                            return false;
+                        }
+                    } catch (IllegalArgumentException e) {
+                        // Ignorar materiales inválidos
+                    }
+                }
+            }
+            return true;
+        } else if (enchantName.equals("halloweenefy")) {
+            // Verificar si el item está en la lista de items permitidos
+            List<String> allowedItems = getConfig().getStringList("enchants.halloweenefy.allowed-items");
+            for (String allowedItem : allowedItems) {
+                try {
+                    Material material = Material.valueOf(allowedItem);
+                    if (item.getType() == material) {
+                        return true;
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Ignorar materiales inválidos
+                }
+            }
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Clase interna para almacenar información del encantamiento
+     */
+    private class EnchantInfo {
+        String enchantName;
+        int level;
+
+        public EnchantInfo(String enchantName, int level) {
+            this.enchantName = enchantName;
+            this.level = level;
+        }
+    }
+
+    /**
+     * Obtiene la información del encantamiento de un libro
+     */
+    private EnchantInfo getEnchantInfoFromBook(ItemStack book) {
+        if (book != null && book.getType() == Material.ENCHANTED_BOOK &&
+                book.hasItemMeta() && book.getItemMeta().hasLore()) {
+
+            List<String> lore = book.getItemMeta().getLore();
+            for (String line : lore) {
+                // Remover códigos de color para la verificación
+                String stripped = ChatColor.stripColor(line);
+                if (stripped.contains(":")) {
+                    String[] parts = stripped.split(":");
+                    if (parts.length == 2) {
+                        try {
+                            int level = Integer.parseInt(parts[1]);
+                            return new EnchantInfo(parts[0], level);
+                        } catch (NumberFormatException e) {
+                            // No es un número válido
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -344,57 +515,14 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
         lore.add(colorize("&eArrastra este libro sobre un item"));
         lore.add(colorize("&epara aplicar el encantamiento"));
 
-        // Añadir un identificador oculto para el plugin
-        lore.add(enchantName + ":" + level);
+        // Añadir identificador completamente invisible usando formato mágico y color de texto invisible
+        // El formato &k hace que el texto sea ilegible y &0 lo hace negro (casi invisible)
+        lore.add(colorize("&0&k" + enchantName + ":" + level));
 
         meta.setLore(lore);
         book.setItemMeta(meta);
 
         return book;
-    }
-
-    /**
-     * Obtiene el nombre del encantamiento de un libro
-     */
-    private String getEnchantFromBook(ItemStack book) {
-        if (book != null && book.getType() == Material.ENCHANTED_BOOK &&
-                book.hasItemMeta() && book.getItemMeta().hasLore()) {
-
-            List<String> lore = book.getItemMeta().getLore();
-            for (String line : lore) {
-                if (line.contains(":")) {
-                    String[] parts = line.split(":");
-                    if (parts.length == 2) {
-                        return parts[0];
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Obtiene el nivel del encantamiento de un libro
-     */
-    private int getEnchantLevelFromBook(ItemStack book, String enchantName) {
-        if (book != null && book.getType() == Material.ENCHANTED_BOOK &&
-                book.hasItemMeta() && book.getItemMeta().hasLore()) {
-
-            List<String> lore = book.getItemMeta().getLore();
-            for (String line : lore) {
-                if (line.contains(":")) {
-                    String[] parts = line.split(":");
-                    if (parts.length == 2 && parts[0].equals(enchantName)) {
-                        try {
-                            return Integer.parseInt(parts[1]);
-                        } catch (NumberFormatException e) {
-                            return 0;
-                        }
-                    }
-                }
-            }
-        }
-        return 0;
     }
 
     private void applyEnchant(ItemStack item, String enchantName, int level) {
@@ -468,6 +596,36 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
 
             for (int i = getConfig().getInt("enchants.soulbound.max-level"); i >= 1; i--) {
                 String enchantLore = colorize(getConfig().getString("enchants.soulbound.levels." + i + ".lore"));
+                if (lore.contains(enchantLore)) {
+                    return i;
+                }
+            }
+        }
+        return 0;
+    }
+
+    private boolean hasHalloweenefyEnchant(ItemStack item) {
+        if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
+            ItemMeta meta = item.getItemMeta();
+            List<String> lore = meta.getLore();
+
+            for (int i = 1; i <= getConfig().getInt("enchants.halloweenefy.max-level"); i++) {
+                String enchantLore = colorize(getConfig().getString("enchants.halloweenefy.levels." + i + ".lore"));
+                if (lore.contains(enchantLore)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private int getHalloweenefyLevel(ItemStack item) {
+        if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
+            ItemMeta meta = item.getItemMeta();
+            List<String> lore = meta.getLore();
+
+            for (int i = getConfig().getInt("enchants.halloweenefy.max-level"); i >= 1; i--) {
+                String enchantLore = colorize(getConfig().getString("enchants.halloweenefy.levels." + i + ".lore"));
                 if (lore.contains(enchantLore)) {
                     return i;
                 }
