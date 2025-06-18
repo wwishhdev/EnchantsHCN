@@ -13,6 +13,10 @@ messages:
   pumpkin-received: "&c¡%player% te ha colocado una calabaza en la cabeza!"
   helmet-inventory: "&aTu casco ha sido movido a tu inventario"
   helmet-dropped: "&aTu casco ha sido tirado al suelo"
+  poison-applied: "&aHas envenenado a %player% por %duration% segundos"
+  poison-received: "&c¡%player% te ha envenenado por %duration% segundos!"
+  slowness-applied: "&aHas ralentizado a %player% por %duration% segundos"
+  slowness-received: "&c¡%player% te ha ralentizado por %duration% segundos!"
 
 enchants:
   soulbound:
@@ -50,14 +54,79 @@ enchants:
       - DIAMOND_AXE
     levels:
       1:
-        chance: 10
-        lore: "&6Halloweenefy I"
+        chance: 1
+        lore: "&b"
         description: ""
       2:
-        chance: 20
+        chance: 1
         lore: "&6Halloweenefy II"
         description: ""
       3:
-        chance: 30
-        lore: "&6Halloweenefy III"
-        description: ""
+        chance: 3
+        lore: ""
+        description: "&6&lH&e&la&6&ll&e&ll&6&lo&e&lw&6&le&e&le&6&ln&6&lf&e&ly &6&lI&e&lI&6&lI"
+
+  poison:
+    name: "Poison"
+    enabled: true
+    max-level: 3
+    allowed-items:
+      - WOOD_SWORD
+      - STONE_SWORD
+      - IRON_SWORD
+      - GOLD_SWORD
+      - DIAMOND_SWORD
+    levels:
+      1:
+        chance: 5
+        lore: "&2Poison I"
+        description: "&7Tiene un &f5%&7 de probabilidad de envenenar al enemigo"
+        duration: 5
+        amplifier: 0
+      2:
+        chance: 10
+        lore: "&2Poison II"
+        description: "&7Tiene un &f10%&7 de probabilidad de envenenar al enemigo"
+        duration: 7
+        amplifier: 0
+      3:
+        chance: 15
+        lore: "&2Poison III"
+        description: "&7Tiene un &f15%&7 de probabilidad de envenenar al enemigo"
+        duration: 10
+        amplifier: 1
+
+  slowness:
+    name: "Slowness"
+    enabled: true
+    max-level: 3
+    allowed-items:
+      - WOOD_SWORD
+      - STONE_SWORD
+      - IRON_SWORD
+      - GOLD_SWORD
+      - DIAMOND_SWORD
+      - WOOD_AXE
+      - STONE_AXE
+      - IRON_AXE
+      - GOLD_AXE
+      - DIAMOND_AXE
+    levels:
+      1:
+        chance: 5
+        lore: "&8Slowness I"
+        description: "&7Tiene un &f5%&7 de probabilidad de ralentizar al enemigo"
+        duration: 4
+        amplifier: 0
+      2:
+        chance: 10
+        lore: "&8Slowness II"
+        description: "&7Tiene un &f10%&7 de probabilidad de ralentizar al enemigo"
+        duration: 6
+        amplifier: 1
+      3:
+        chance: 15
+        lore: "&8Slowness III"
+        description: "&7Tiene un &f15%&7 de probabilidad de ralentizar al enemigo"
+        duration: 8
+        amplifier: 2

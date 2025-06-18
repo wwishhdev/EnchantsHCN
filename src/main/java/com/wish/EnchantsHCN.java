@@ -15,6 +15,8 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -301,6 +303,30 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
                 applyPumpkinEffect(attacker, victim);
             }
         }
+
+        // Verificar si el arma tiene el encantamiento Poison
+        if (hasPoisonEnchant(weapon)) {
+            int level = getPoisonLevel(weapon);
+            int chance = getConfig().getInt("enchants.poison.levels." + level + ".chance");
+
+            // Verificar si el encantamiento se activa según la probabilidad
+            if (random.nextInt(100) < chance) {
+                // Aplicar efecto de veneno
+                applyPoisonEffect(attacker, victim, level);
+            }
+        }
+
+        // Verificar si el arma tiene el encantamiento Slowness
+        if (hasSlownessEnchant(weapon)) {
+            int level = getSlownessLevel(weapon);
+            int chance = getConfig().getInt("enchants.slowness.levels." + level + ".chance");
+
+            // Verificar si el encantamiento se activa según la probabilidad
+            if (random.nextInt(100) < chance) {
+                // Aplicar efecto de lentitud
+                applySlownessEffect(attacker, victim, level);
+            }
+        }
     }
 
     // Usamos prioridad HIGHEST para que nuestro evento se ejecute después de otros eventos
@@ -396,6 +422,52 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
     }
 
     /**
+     * Aplica el efecto de veneno a un jugador
+     */
+    private void applyPoisonEffect(Player attacker, Player victim, int level) {
+        // Obtener la duración y amplitud del efecto desde la configuración
+        int duration = getConfig().getInt("enchants.poison.levels." + level + ".duration", 5);
+        int amplifier = getConfig().getInt("enchants.poison.levels." + level + ".amplifier", 0);
+
+        // Aplicar efecto de veneno
+        victim.addPotionEffect(new PotionEffect(PotionEffectType.POISON, duration * 20, amplifier));
+
+        // Mensajes a los jugadores
+        attacker.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                getConfig().getString("messages.poison-applied")
+                        .replace("%player%", victim.getName())
+                        .replace("%duration%", String.valueOf(duration))));
+
+        victim.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                getConfig().getString("messages.poison-received")
+                        .replace("%player%", attacker.getName())
+                        .replace("%duration%", String.valueOf(duration))));
+    }
+
+    /**
+     * Aplica el efecto de lentitud a un jugador
+     */
+    private void applySlownessEffect(Player attacker, Player victim, int level) {
+        // Obtener la duración y amplitud del efecto desde la configuración
+        int duration = getConfig().getInt("enchants.slowness.levels." + level + ".duration", 4);
+        int amplifier = getConfig().getInt("enchants.slowness.levels." + level + ".amplifier", 0);
+
+        // Aplicar efecto de lentitud
+        victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, duration * 20, amplifier));
+
+        // Mensajes a los jugadores
+        attacker.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                getConfig().getString("messages.slowness-applied")
+                        .replace("%player%", victim.getName())
+                        .replace("%duration%", String.valueOf(duration))));
+
+        victim.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                getConfig().getString("messages.slowness-received")
+                        .replace("%player%", attacker.getName())
+                        .replace("%duration%", String.valueOf(duration))));
+    }
+
+    /**
      * Verifica si un item es compatible con un encantamiento específico
      */
     private boolean isItemValidForEnchant(ItemStack item, String enchantName) {
@@ -431,9 +503,9 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
                 }
             }
             return true;
-        } else if (enchantName.equals("halloweenefy")) {
+        } else if (enchantName.equals("halloweenefy") || enchantName.equals("poison") || enchantName.equals("slowness")) {
             // Verificar si el item está en la lista de items permitidos
-            List<String> allowedItems = getConfig().getStringList("enchants.halloweenefy.allowed-items");
+            List<String> allowedItems = getConfig().getStringList("enchants." + enchantName + ".allowed-items");
             for (String allowedItem : allowedItems) {
                 try {
                     Material material = Material.valueOf(allowedItem);
@@ -536,7 +608,10 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
         String enchantLore = colorize(getConfig().getString("enchants." + enchantName + ".levels." + level + ".lore"));
         String enchantDescription = getConfig().getString("enchants." + enchantName + ".levels." + level + ".description");
 
-        lore.add(enchantLore);
+        if (enchantLore != null && !enchantLore.isEmpty()) {
+            lore.add(enchantLore);
+        }
+
         if (enchantDescription != null && !enchantDescription.isEmpty()) {
             lore.add(colorize(enchantDescription));
         }
@@ -558,7 +633,8 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
                     String enchantLore = colorize(getConfig().getString("enchants." + enchantName + ".levels." + i + ".lore", ""));
                     String enchantDescription = colorize(getConfig().getString("enchants." + enchantName + ".levels." + i + ".description", ""));
 
-                    if (line.equals(enchantLore) || line.equals(enchantDescription)) {
+                    if ((enchantLore != null && !enchantLore.isEmpty() && line.equals(enchantLore)) ||
+                            (enchantDescription != null && !enchantDescription.isEmpty() && line.equals(enchantDescription))) {
                         isEnchantmentLine = true;
                         break;
                     }
@@ -581,7 +657,7 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
 
             for (int i = 1; i <= getConfig().getInt("enchants.soulbound.max-level"); i++) {
                 String enchantLore = colorize(getConfig().getString("enchants.soulbound.levels." + i + ".lore"));
-                if (lore.contains(enchantLore)) {
+                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
                     return true;
                 }
             }
@@ -596,7 +672,7 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
 
             for (int i = getConfig().getInt("enchants.soulbound.max-level"); i >= 1; i--) {
                 String enchantLore = colorize(getConfig().getString("enchants.soulbound.levels." + i + ".lore"));
-                if (lore.contains(enchantLore)) {
+                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
                     return i;
                 }
             }
@@ -611,7 +687,10 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
 
             for (int i = 1; i <= getConfig().getInt("enchants.halloweenefy.max-level"); i++) {
                 String enchantLore = colorize(getConfig().getString("enchants.halloweenefy.levels." + i + ".lore"));
-                if (lore.contains(enchantLore)) {
+                String enchantDescription = colorize(getConfig().getString("enchants.halloweenefy.levels." + i + ".description"));
+
+                if ((enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) ||
+                        (enchantDescription != null && !enchantDescription.isEmpty() && lore.contains(enchantDescription))) {
                     return true;
                 }
             }
@@ -626,7 +705,70 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
 
             for (int i = getConfig().getInt("enchants.halloweenefy.max-level"); i >= 1; i--) {
                 String enchantLore = colorize(getConfig().getString("enchants.halloweenefy.levels." + i + ".lore"));
-                if (lore.contains(enchantLore)) {
+                String enchantDescription = colorize(getConfig().getString("enchants.halloweenefy.levels." + i + ".description"));
+
+                if ((enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) ||
+                        (enchantDescription != null && !enchantDescription.isEmpty() && lore.contains(enchantDescription))) {
+                    return i;
+                }
+            }
+        }
+        return 0;
+    }
+
+    private boolean hasPoisonEnchant(ItemStack item) {
+        if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
+            ItemMeta meta = item.getItemMeta();
+            List<String> lore = meta.getLore();
+
+            for (int i = 1; i <= getConfig().getInt("enchants.poison.max-level"); i++) {
+                String enchantLore = colorize(getConfig().getString("enchants.poison.levels." + i + ".lore"));
+                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private int getPoisonLevel(ItemStack item) {
+        if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
+            ItemMeta meta = item.getItemMeta();
+            List<String> lore = meta.getLore();
+
+            for (int i = getConfig().getInt("enchants.poison.max-level"); i >= 1; i--) {
+                String enchantLore = colorize(getConfig().getString("enchants.poison.levels." + i + ".lore"));
+                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
+                    return i;
+                }
+            }
+        }
+        return 0;
+    }
+
+    private boolean hasSlownessEnchant(ItemStack item) {
+        if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
+            ItemMeta meta = item.getItemMeta();
+            List<String> lore = meta.getLore();
+
+            for (int i = 1; i <= getConfig().getInt("enchants.slowness.max-level"); i++) {
+                String enchantLore = colorize(getConfig().getString("enchants.slowness.levels." + i + ".lore"));
+                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private int getSlownessLevel(ItemStack item) {
+        if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
+            ItemMeta meta = item.getItemMeta();
+            List<String> lore = meta.getLore();
+
+            for (int i = getConfig().getInt("enchants.slowness.max-level"); i >= 1; i--) {
+                String enchantLore = colorize(getConfig().getString("enchants.slowness.levels." + i + ".lore"));
+                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
                     return i;
                 }
             }
