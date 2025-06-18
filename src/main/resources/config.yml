@@ -5,6 +5,10 @@ messages:
   enchant-applied: "&aEncantamiento %enchant% %level% aplicado con éxito"
   no-item: "&cDebes tener un item en la mano"
   no-valid-enchant: "&cEncantamiento no válido"
+  book-given: "&aHas recibido un libro de encantamiento %enchant% %level%"
+  book-inventory-full: "&cTu inventario está lleno"
+  book-applied: "&aHas aplicado el encantamiento %enchant% %level% al item"
+  book-invalid-item: "&cNo puedes aplicar este encantamiento a este item"
 
 enchants:
   soulbound:

@@ -12,3 +12,7 @@ commands:
     description: Recarga la configuración del plugin
     usage: /<command>
     aliases: [ehcnreload]
+  enchantshcnbook:
+    description: Da un libro encantado al jugador
+    usage: /<command> <enchant> [nivel] [jugador]
+    aliases: [ehcnbook]
