@@ -569,11 +569,23 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
         ItemMeta meta = book.getItemMeta();
 
         String enchantDisplayName = getConfig().getString("enchants." + enchantName + ".name");
-        meta.setDisplayName(colorize("&b" + enchantDisplayName + " " + level));
+
+        // Usar mensaje configurable para el título del libro
+        String bookTitle = getConfig().getString("messages.book-title", "&b%enchant% %level%")
+                .replace("%enchant%", enchantDisplayName)
+                .replace("%level%", String.valueOf(level));
+        meta.setDisplayName(colorize(bookTitle));
 
         List<String> lore = new ArrayList<>();
-        lore.add(colorize("&7Encantamiento: &b" + enchantDisplayName));
-        lore.add(colorize("&7Nivel: &b" + level));
+
+        // Usar mensajes configurables para la información del encantamiento
+        String enchantInfo = getConfig().getString("messages.book-enchant-info", "&7Encantamiento: &b%enchant%")
+                .replace("%enchant%", enchantDisplayName);
+        String levelInfo = getConfig().getString("messages.book-level-info", "&7Nivel: &b%level%")
+                .replace("%level%", String.valueOf(level));
+
+        lore.add(colorize(enchantInfo));
+        lore.add(colorize(levelInfo));
         lore.add("");
 
         // Añadir descripción del encantamiento
@@ -583,9 +595,12 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             lore.add("");
         }
 
-        // Añadir instrucciones
-        lore.add(colorize("&eArrastra este libro sobre un item"));
-        lore.add(colorize("&epara aplicar el encantamiento"));
+        // Añadir instrucciones configurables
+        String instructions1 = getConfig().getString("messages.book-instructions-1", "&eArrastra este libro sobre un item");
+        String instructions2 = getConfig().getString("messages.book-instructions-2", "&epara aplicar el encantamiento");
+
+        lore.add(colorize(instructions1));
+        lore.add(colorize(instructions2));
 
         // Añadir identificador completamente invisible usando formato mágico y color de texto invisible
         // El formato &k hace que el texto sea ilegible y &0 lo hace negro (casi invisible)
@@ -605,13 +620,15 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
         removeEnchant(item, enchantName);
 
         // Agregar el nuevo encantamiento
-        String enchantLore = colorize(getConfig().getString("enchants." + enchantName + ".levels." + level + ".lore"));
+        List<String> enchantLores = getConfig().getStringList("enchants." + enchantName + ".levels." + level + ".lore");
         String enchantDescription = getConfig().getString("enchants." + enchantName + ".levels." + level + ".description");
 
-        if (enchantLore != null && !enchantLore.isEmpty()) {
-            lore.add(enchantLore);
+        // Añadir cada línea de lore del encantamiento
+        for (String loreLine : enchantLores) {
+            lore.add(colorize(loreLine));
         }
 
+        // Añadir descripción si existe
         if (enchantDescription != null && !enchantDescription.isEmpty()) {
             lore.add(colorize(enchantDescription));
         }
@@ -626,27 +643,44 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             List<String> lore = meta.getLore();
             List<String> newLore = new ArrayList<>();
 
-            for (String line : lore) {
-                boolean isEnchantmentLine = false;
+            // Para cada nivel del encantamiento
+            for (int i = 1; i <= getConfig().getInt("enchants." + enchantName + ".max-level", 0); i++) {
+                // Obtener todas las líneas de lore para este nivel
+                List<String> enchantLores = getConfig().getStringList("enchants." + enchantName + ".levels." + i + ".lore");
+                // Obtener la descripción para este nivel
+                String enchantDescription = getConfig().getString("enchants." + enchantName + ".levels." + i + ".description", "");
 
-                for (int i = 1; i <= getConfig().getInt("enchants." + enchantName + ".max-level", 0); i++) {
-                    String enchantLore = colorize(getConfig().getString("enchants." + enchantName + ".levels." + i + ".lore", ""));
-                    String enchantDescription = colorize(getConfig().getString("enchants." + enchantName + ".levels." + i + ".description", ""));
+                // Colorizar cada línea para poder comparar correctamente
+                List<String> colorizedLores = new ArrayList<>();
+                for (String loreLine : enchantLores) {
+                    colorizedLores.add(colorize(loreLine));
+                }
+                String colorizedDescription = colorize(enchantDescription);
 
-                    if ((enchantLore != null && !enchantLore.isEmpty() && line.equals(enchantLore)) ||
-                            (enchantDescription != null && !enchantDescription.isEmpty() && line.equals(enchantDescription))) {
-                        isEnchantmentLine = true;
-                        break;
+                // Eliminar líneas que coincidan con las del encantamiento
+                for (String line : lore) {
+                    // Si la línea no está en el lore del encantamiento y no es la descripción, mantenerla
+                    if (!colorizedLores.contains(line) && !line.equals(colorizedDescription)) {
+                        newLore.add(line);
                     }
                 }
 
-                if (!isEnchantmentLine) {
-                    newLore.add(line);
+                // Si hemos removido algún lore, actualizar la lista para la siguiente iteración
+                if (lore.size() != newLore.size()) {
+                    lore = new ArrayList<>(newLore);
+                    newLore.clear();
                 }
             }
 
-            meta.setLore(newLore);
-            item.setItemMeta(meta);
+            // Si al final tenemos una lista, usarla como el nuevo lore
+            if (!lore.isEmpty()) {
+                meta.setLore(lore);
+                item.setItemMeta(meta);
+            } else {
+                // Si no hay lore, eliminar completamente el lore
+                meta.setLore(null);
+                item.setItemMeta(meta);
+            }
         }
     }
 
@@ -656,9 +690,14 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             List<String> lore = meta.getLore();
 
             for (int i = 1; i <= getConfig().getInt("enchants.soulbound.max-level"); i++) {
-                String enchantLore = colorize(getConfig().getString("enchants.soulbound.levels." + i + ".lore"));
-                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
-                    return true;
+                List<String> enchantLores = getConfig().getStringList("enchants.soulbound.levels." + i + ".lore");
+                for (String loreLine : enchantLores) {
+                    if (loreLine != null && !loreLine.isEmpty()) {
+                        String colorized = colorize(loreLine);
+                        if (lore.contains(colorized)) {
+                            return true;
+                        }
+                    }
                 }
             }
         }
@@ -671,9 +710,14 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             List<String> lore = meta.getLore();
 
             for (int i = getConfig().getInt("enchants.soulbound.max-level"); i >= 1; i--) {
-                String enchantLore = colorize(getConfig().getString("enchants.soulbound.levels." + i + ".lore"));
-                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
-                    return i;
+                List<String> enchantLores = getConfig().getStringList("enchants.soulbound.levels." + i + ".lore");
+                for (String loreLine : enchantLores) {
+                    if (loreLine != null && !loreLine.isEmpty()) {
+                        String colorized = colorize(loreLine);
+                        if (lore.contains(colorized)) {
+                            return i;
+                        }
+                    }
                 }
             }
         }
@@ -686,12 +730,25 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             List<String> lore = meta.getLore();
 
             for (int i = 1; i <= getConfig().getInt("enchants.halloweenefy.max-level"); i++) {
-                String enchantLore = colorize(getConfig().getString("enchants.halloweenefy.levels." + i + ".lore"));
-                String enchantDescription = colorize(getConfig().getString("enchants.halloweenefy.levels." + i + ".description"));
+                List<String> enchantLores = getConfig().getStringList("enchants.halloweenefy.levels." + i + ".lore");
+                String enchantDescription = getConfig().getString("enchants.halloweenefy.levels." + i + ".description");
 
-                if ((enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) ||
-                        (enchantDescription != null && !enchantDescription.isEmpty() && lore.contains(enchantDescription))) {
-                    return true;
+                // Verificar si alguna línea del lore coincide
+                for (String loreLine : enchantLores) {
+                    if (loreLine != null && !loreLine.isEmpty()) {
+                        String colorized = colorize(loreLine);
+                        if (lore.contains(colorized)) {
+                            return true;
+                        }
+                    }
+                }
+
+                // Verificar si la descripción coincide
+                if (enchantDescription != null && !enchantDescription.isEmpty()) {
+                    String colorized = colorize(enchantDescription);
+                    if (lore.contains(colorized)) {
+                        return true;
+                    }
                 }
             }
         }
@@ -704,12 +761,25 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             List<String> lore = meta.getLore();
 
             for (int i = getConfig().getInt("enchants.halloweenefy.max-level"); i >= 1; i--) {
-                String enchantLore = colorize(getConfig().getString("enchants.halloweenefy.levels." + i + ".lore"));
-                String enchantDescription = colorize(getConfig().getString("enchants.halloweenefy.levels." + i + ".description"));
+                List<String> enchantLores = getConfig().getStringList("enchants.halloweenefy.levels." + i + ".lore");
+                String enchantDescription = getConfig().getString("enchants.halloweenefy.levels." + i + ".description");
 
-                if ((enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) ||
-                        (enchantDescription != null && !enchantDescription.isEmpty() && lore.contains(enchantDescription))) {
-                    return i;
+                // Verificar si alguna línea del lore coincide
+                for (String loreLine : enchantLores) {
+                    if (loreLine != null && !loreLine.isEmpty()) {
+                        String colorized = colorize(loreLine);
+                        if (lore.contains(colorized)) {
+                            return i;
+                        }
+                    }
+                }
+
+                // Verificar si la descripción coincide
+                if (enchantDescription != null && !enchantDescription.isEmpty()) {
+                    String colorized = colorize(enchantDescription);
+                    if (lore.contains(colorized)) {
+                        return i;
+                    }
                 }
             }
         }
@@ -722,9 +792,14 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             List<String> lore = meta.getLore();
 
             for (int i = 1; i <= getConfig().getInt("enchants.poison.max-level"); i++) {
-                String enchantLore = colorize(getConfig().getString("enchants.poison.levels." + i + ".lore"));
-                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
-                    return true;
+                List<String> enchantLores = getConfig().getStringList("enchants.poison.levels." + i + ".lore");
+                for (String loreLine : enchantLores) {
+                    if (loreLine != null && !loreLine.isEmpty()) {
+                        String colorized = colorize(loreLine);
+                        if (lore.contains(colorized)) {
+                            return true;
+                        }
+                    }
                 }
             }
         }
@@ -737,9 +812,14 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             List<String> lore = meta.getLore();
 
             for (int i = getConfig().getInt("enchants.poison.max-level"); i >= 1; i--) {
-                String enchantLore = colorize(getConfig().getString("enchants.poison.levels." + i + ".lore"));
-                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
-                    return i;
+                List<String> enchantLores = getConfig().getStringList("enchants.poison.levels." + i + ".lore");
+                for (String loreLine : enchantLores) {
+                    if (loreLine != null && !loreLine.isEmpty()) {
+                        String colorized = colorize(loreLine);
+                        if (lore.contains(colorized)) {
+                            return i;
+                        }
+                    }
                 }
             }
         }
@@ -752,9 +832,14 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             List<String> lore = meta.getLore();
 
             for (int i = 1; i <= getConfig().getInt("enchants.slowness.max-level"); i++) {
-                String enchantLore = colorize(getConfig().getString("enchants.slowness.levels." + i + ".lore"));
-                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
-                    return true;
+                List<String> enchantLores = getConfig().getStringList("enchants.slowness.levels." + i + ".lore");
+                for (String loreLine : enchantLores) {
+                    if (loreLine != null && !loreLine.isEmpty()) {
+                        String colorized = colorize(loreLine);
+                        if (lore.contains(colorized)) {
+                            return true;
+                        }
+                    }
                 }
             }
         }
@@ -767,9 +852,14 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             List<String> lore = meta.getLore();
 
             for (int i = getConfig().getInt("enchants.slowness.max-level"); i >= 1; i--) {
-                String enchantLore = colorize(getConfig().getString("enchants.slowness.levels." + i + ".lore"));
-                if (enchantLore != null && !enchantLore.isEmpty() && lore.contains(enchantLore)) {
-                    return i;
+                List<String> enchantLores = getConfig().getStringList("enchants.slowness.levels." + i + ".lore");
+                for (String loreLine : enchantLores) {
+                    if (loreLine != null && !loreLine.isEmpty()) {
+                        String colorized = colorize(loreLine);
+                        if (lore.contains(colorized)) {
+                            return i;
+                        }
+                    }
                 }
             }
         }
