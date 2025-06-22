@@ -1,22 +1,23 @@
 messages:
-  prefix: "&8[&bEnchantsHCN&8]"
+  prefix: ""
   reload: "&aLa configuración ha sido recargada"
   no-permission: "&cNo tienes permiso para usar este comando"
   enchant-applied: "&aEncantamiento %enchant% %level% aplicado con éxito"
+  enchant-already-applied: "&cEste item ya tiene el encantamiento %enchant%"
   no-item: "&cDebes tener un item en la mano"
   no-valid-enchant: "&cEncantamiento no válido"
   book-given: "&aHas recibido un libro de encantamiento %enchant% %level%"
   book-inventory-full: "&cTu inventario está lleno"
   book-applied: "&aHas aplicado el encantamiento %enchant% %level% al item"
   book-invalid-item: "&cNo puedes aplicar este encantamiento a este item"
-  pumpkin-placed: "&aHas colocado una calabaza en la cabeza de %player%"
-  pumpkin-received: "&c¡%player% te ha colocado una calabaza en la cabeza!"
-  helmet-inventory: "&aTu casco ha sido movido a tu inventario"
-  helmet-dropped: "&aTu casco ha sido tirado al suelo"
-  poison-applied: "&aHas envenenado a %player% por %duration% segundos"
-  poison-received: "&c¡%player% te ha envenenado por %duration% segundos!"
-  slowness-applied: "&aHas ralentizado a %player% por %duration% segundos"
-  slowness-received: "&c¡%player% te ha ralentizado por %duration% segundos!"
+  pumpkin-placed: "&8[&6&lHALLOWEENFY&8] &fHas colocado una calabaza en la cabeza de &6%player%"
+  pumpkin-received: "&8[&6&lHALLOWEENFY&8] &c¡%player% te ha colocado una calabaza en la cabeza!"
+  helmet-inventory: "&8[&6&lHALLOWEENFY&8] &fTu casco ha sido movido a tu inventario"
+  helmet-dropped: "&8[&6&lHALLOWEENFY&8] &fTu casco ha sido tirado al suelo"
+  poison-applied: "&8[&e&lH&6&lC&e&lN&8] &fHas envenenado a &6%player% &fpor &e%duration% &fsegundos"
+  poison-received: "&8[&e&lH&6&lC&e&lN&8] &c¡&c%player% te ha envenenado por %duration% segundos!"
+  slowness-applied: "&8[&e&lH&6&lC&e&lN&8] &fHas ralentizado a &6%player% &fpor &e%duration% &fsegundos"
+  slowness-received: "&8[&e&lH&6&lC&e&lN&8] &c¡%player% te ha ralentizado por %duration% segundos!"
   # Mensajes para libros de encantamientos
   book-title: "&b%enchant% %level%"
   book-enchant-info: "&7Encantamiento: &b%enchant%"
@@ -38,13 +39,11 @@ enchants:
         chance: 50
         lore:
           - "&7SoulBound I"
-          - ""
         description: ""
       2:
         chance: 100
         lore:
           - "&7SoulBound II"
-          - "&7Mantiene tus items al morir"
         description: ""
 
   halloweenefy:
@@ -66,22 +65,18 @@ enchants:
       1:
         chance: 1
         lore:
-          - "&6Halloweenefy I"
           - ""
-        description: ""
+        description: "&6&lH&e&la&6&ll&e&ll&6&lo&e&lw&6&le&e&le&6&ln&6&lf&e&ly &6&lI"
       2:
         chance: 1
         lore:
-          - "&6Halloweenefy II"
           - ""
-          - "&7Coloca calabazas en las cabezas"
-        description: ""
+        description: "&6&lH&e&la&6&ll&e&ll&6&lo&e&lw&6&le&e&le&6&ln&6&lf&e&ly &6&lI&e&lI"
       3:
         chance: 3
         lore:
           - ""
           - "&6&lH&e&la&6&ll&e&ll&6&lo&e&lw&6&le&e&le&6&ln&6&lf&e&ly &6&lI&e&lI&6&lI"
-          - ""
         description: ""
 
   poison:
@@ -96,32 +91,26 @@ enchants:
       - DIAMOND_SWORD
     levels:
       1:
-        chance: 5
+        chance: 8
         lore:
-          - "&2Poison I"
-          - ""
-        description: "&7Tiene un &f5%&7 de probabilidad de envenenar al enemigo"
-        duration: 5
+          - "&2&lP&a&lo&2&li&a&ls&2&lo&a&ln &2&lI"
+        description: ""
+        duration: 8
         amplifier: 0
       2:
-        chance: 10
+        chance: 6
         lore:
-          - "&2Poison II"
-          - ""
-          - "&7Envenena a tus enemigos"
-        description: "&7Tiene un &f10%&7 de probabilidad de envenenar al enemigo"
-        duration: 7
-        amplifier: 0
-      3:
-        chance: 15
-        lore:
-          - "&2Poison III"
-          - ""
-          - "&7Envenena a tus enemigos"
-          - "&7con mayor potencia"
-        description: "&7Tiene un &f15%&7 de probabilidad de envenenar al enemigo"
-        duration: 10
+          - "&2&lP&a&lo&2&li&a&ls&2&lo&a&ln &2&lI&a&lI"
+        description: ""
+        duration: 6
         amplifier: 1
+      3:
+        chance: 3
+        lore:
+          - "&2&lP&a&lo&2&li&a&ls&2&lo&a&ln &2&lI&a&lI&2&lI"
+        description: ""
+        duration: 4
+        amplifier: 2
 
   slowness:
     name: "Slowness"
@@ -140,29 +129,23 @@ enchants:
       - DIAMOND_AXE
     levels:
       1:
-        chance: 5
+        chance: 8
         lore:
-          - "&8Slowness I"
-          - ""
-        description: "&7Tiene un &f5%&7 de probabilidad de ralentizar al enemigo"
-        duration: 4
+          - "&7&lS&f&ll&f&lo&7&lw &7&lI"
+        description: ""
+        duration: 8
         amplifier: 0
       2:
-        chance: 10
+        chance: 6
         lore:
-          - "&8Slowness II"
-          - ""
-          - "&7Ralentiza a tus enemigos"
-        description: "&7Tiene un &f10%&7 de probabilidad de ralentizar al enemigo"
+          - "&7&lS&f&ll&f&lo&7&lw &7&lI&f&lI"
+        description: ""
         duration: 6
         amplifier: 1
       3:
-        chance: 15
+        chance: 3
         lore:
-          - "&8Slowness III"
-          - ""
-          - "&7Ralentiza a tus enemigos"
-          - "&7con mayor potencia"
-        description: "&7Tiene un &f15%&7 de probabilidad de ralentizar al enemigo"
-        duration: 8
+          - "&7&lS&f&ll&f&lo&7&lw &7&lI&f&lI&7&lI"
+        description: ""
+        duration: 4
         amplifier: 2

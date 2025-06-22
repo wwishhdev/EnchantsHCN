@@ -211,6 +211,14 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
                 return true;
             }
 
+            // NUEVO: Verificar si el item ya tiene el encantamiento
+            if (hasEnchant(item, enchantName)) {
+                player.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                        getConfig().getString("messages.enchant-already-applied", "&cEste item ya tiene el encantamiento %enchant%")
+                                .replace("%enchant%", getConfig().getString("enchants." + enchantName + ".name"))));
+                return true;
+            }
+
             // Aplicar encantamiento
             applyEnchant(item, enchantName, level);
             player.setItemInHand(item);
@@ -359,6 +367,14 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
         if (!isItemValidForEnchant(current, info.enchantName)) {
             player.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
                     getConfig().getString("messages.book-invalid-item")));
+            return;
+        }
+
+        // NUEVO: Verificar si el item ya tiene el encantamiento
+        if (hasEnchant(current, info.enchantName)) {
+            player.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                    getConfig().getString("messages.enchant-already-applied", "&cEste item ya tiene el encantamiento %enchant%")
+                            .replace("%enchant%", getConfig().getString("enchants." + info.enchantName + ".name"))));
             return;
         }
 
@@ -682,6 +698,51 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
                 item.setItemMeta(meta);
             }
         }
+    }
+
+    /**
+     * NUEVO: Método general para verificar si un item tiene un encantamiento específico
+     */
+    private boolean hasEnchant(ItemStack item, String enchantName) {
+        if (enchantName.equals("soulbound")) {
+            return hasSoulboundEnchant(item);
+        } else if (enchantName.equals("halloweenefy")) {
+            return hasHalloweenefyEnchant(item);
+        } else if (enchantName.equals("poison")) {
+            return hasPoisonEnchant(item);
+        } else if (enchantName.equals("slowness")) {
+            return hasSlownessEnchant(item);
+        }
+
+        // Si es un encantamiento que no conocemos específicamente, hacer una verificación genérica
+        if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
+            ItemMeta meta = item.getItemMeta();
+            List<String> lore = meta.getLore();
+
+            for (int i = 1; i <= getConfig().getInt("enchants." + enchantName + ".max-level", 0); i++) {
+                List<String> enchantLores = getConfig().getStringList("enchants." + enchantName + ".levels." + i + ".lore");
+                String enchantDescription = getConfig().getString("enchants." + enchantName + ".levels." + i + ".description", "");
+
+                // Verificar si alguna línea del lore coincide
+                for (String loreLine : enchantLores) {
+                    if (loreLine != null && !loreLine.isEmpty()) {
+                        String colorized = colorize(loreLine);
+                        if (lore.contains(colorized)) {
+                            return true;
+                        }
+                    }
+                }
+
+                // Verificar si la descripción coincide
+                if (enchantDescription != null && !enchantDescription.isEmpty()) {
+                    String colorized = colorize(enchantDescription);
+                    if (lore.contains(colorized)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private boolean hasSoulboundEnchant(ItemStack item) {
