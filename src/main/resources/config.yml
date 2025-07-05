@@ -43,7 +43,7 @@ enchants:
       2:
         chance: 100
         lore:
-          - "&7SoulBound II"
+          - "&c&lSoulBound II"
         description: ""
 
   halloweenefy:
@@ -75,7 +75,6 @@ enchants:
       3:
         chance: 3
         lore:
-          - ""
           - "&6&lH&e&la&6&ll&e&ll&6&lo&e&lw&6&le&e&le&6&ln&6&lf&e&ly &6&lI&e&lI&6&lI"
         description: ""
 

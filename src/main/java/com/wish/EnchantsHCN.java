@@ -279,8 +279,14 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
         }
     }
 
-    @EventHandler
+    // Cambiamos la prioridad a HIGH para que se ejecute después de WorldGuard
+    @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamage(EntityDamageByEntityEvent event) {
+        // Verificar si el evento ya ha sido cancelado por otro plugin (como WorldGuard en zonas no-PvP)
+        if (event.isCancelled()) {
+            return; // Si el evento está cancelado, no aplicamos ningún efecto
+        }
+
         // Verificar si el atacante es un jugador
         if (!(event.getDamager() instanceof Player)) {
             return;
