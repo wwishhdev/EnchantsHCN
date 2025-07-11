@@ -537,14 +537,20 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
         org.bukkit.Location center = player.getLocation();
         List<org.bukkit.Location> iceBlocks = new ArrayList<>();
         
-        // Crear una cápsula de hielo hueca de 3x3x3 centrada en el jugador
-        for (int x = -1; x <= 1; x++) {
-            for (int y = 0; y <= 2; y++) {
-                for (int z = -1; z <= 1; z++) {
-                    // Solo crear bloques en los bordes (cápsula hueca)
-                    if (x == -1 || x == 1 || y == 0 || y == 2 || z == -1 || z == 1) {
-                        // No crear bloque en el centro del suelo para que el jugador pueda estar de pie
-                        if (!(y == 0 && x == 0 && z == 0)) {
+        // Radio de la cápsula esférica
+        double radius = 2.5;
+        
+        // Crear una cápsula de hielo esférica hueca más grande
+        for (int x = -3; x <= 3; x++) {
+            for (int y = 0; y <= 4; y++) {
+                for (int z = -3; z <= 3; z++) {
+                    // Calcular la distancia desde el centro
+                    double distance = Math.sqrt(x * x + (y - 2) * (y - 2) + z * z);
+                    
+                    // Solo crear bloques en el borde de la esfera (cápsula hueca)
+                    if (distance >= radius - 0.5 && distance <= radius + 0.5) {
+                        // No crear bloques en el suelo central para que los jugadores puedan estar de pie
+                        if (!(y == 0 && Math.abs(x) <= 1 && Math.abs(z) <= 1)) {
                             org.bukkit.Location blockLoc = center.clone().add(x, y, z);
                             
                             // Solo reemplazar bloques de aire o bloques no sólidos
