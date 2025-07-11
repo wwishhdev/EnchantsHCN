@@ -18,6 +18,8 @@ messages:
   poison-received: "&8[&e&lH&6&lC&e&lN&8] &c¡&c%player% te ha envenenado por %duration% segundos!"
   slowness-applied: "&8[&e&lH&6&lC&e&lN&8] &fHas ralentizado a &6%player% &fpor &e%duration% &fsegundos"
   slowness-received: "&8[&e&lH&6&lC&e&lN&8] &c¡%player% te ha ralentizado por %duration% segundos!"
+  ice-applied: "&8[&b&lI&f&lC&b&lE&8] &fHas encapsulado a &6%player% &fen hielo por &b%duration% &fsegundos"
+  ice-received: "&8[&b&lI&f&lC&b&lE&8] &c¡%player% te ha encapsulado en hielo por %duration% segundos!"
   # Mensajes para libros de encantamientos
   book-title: "&b%enchant% %level%"
   book-enchant-info: "&7Encantamiento: &b%enchant%"
@@ -110,6 +112,41 @@ enchants:
         description: ""
         duration: 4
         amplifier: 2
+
+  iceaspect:
+    name: "Ice Aspect"
+    enabled: true
+    max-level: 3
+    allowed-items:
+      - WOOD_SWORD
+      - STONE_SWORD
+      - IRON_SWORD
+      - GOLD_SWORD
+      - DIAMOND_SWORD
+      - WOOD_AXE
+      - STONE_AXE
+      - IRON_AXE
+      - GOLD_AXE
+      - DIAMOND_AXE
+    levels:
+      1:
+        chance: 8
+        lore:
+          - "&b&lI&f&lc&b&le &b&lI"
+        description: ""
+        duration: 5
+      2:
+        chance: 6
+        lore:
+          - "&b&lI&f&lc&b&le &b&lI&f&lI"
+        description: ""
+        duration: 5
+      3:
+        chance: 4
+        lore:
+          - "&b&lI&f&lc&b&le &b&lI&f&lI&b&lI"
+        description: ""
+        duration: 5
 
   slowness:
     name: "Slowness"

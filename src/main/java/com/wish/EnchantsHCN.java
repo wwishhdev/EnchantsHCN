@@ -19,14 +19,17 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 
 public class EnchantsHCN extends JavaPlugin implements Listener {
 
     private Random random = new Random();
+    private Map<UUID, List<org.bukkit.Location>> iceCapsules = new HashMap<>();
 
     @Override
     public void onEnable() {
@@ -43,6 +46,10 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+        // Limpiar todas las cápsulas de hielo activas
+        for (UUID playerUUID : new ArrayList<>(iceCapsules.keySet())) {
+            removeIceCapsule(playerUUID);
+        }
         getLogger().info("EnchantsHCN ha sido deshabilitado! by wwishhdev <3");
     }
 
@@ -341,6 +348,18 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
                 applySlownessEffect(attacker, victim, level);
             }
         }
+
+        // Verificar si el arma tiene el encantamiento Ice Aspect
+        if (hasIceAspectEnchant(weapon)) {
+            int level = getIceAspectLevel(weapon);
+            int chance = getConfig().getInt("enchants.iceaspect.levels." + level + ".chance");
+
+            // Verificar si el encantamiento se activa según la probabilidad
+            if (random.nextInt(100) < chance) {
+                // Aplicar efecto de cápsula de hielo
+                applyIceEffect(attacker, victim, level);
+            }
+        }
     }
 
     // Usamos prioridad HIGHEST para que nuestro evento se ejecute después de otros eventos
@@ -490,6 +509,86 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
     }
 
     /**
+     * Aplica el efecto de cápsula de hielo a un jugador
+     */
+    private void applyIceEffect(Player attacker, Player victim, int level) {
+        // Obtener la duración del efecto desde la configuración
+        int duration = getConfig().getInt("enchants.iceaspect.levels." + level + ".duration", 5);
+
+        // Crear la cápsula de hielo
+        createIceCapsule(victim, duration);
+
+        // Mensajes a los jugadores
+        attacker.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                getConfig().getString("messages.ice-applied")
+                        .replace("%player%", victim.getName())
+                        .replace("%duration%", String.valueOf(duration))));
+
+        victim.sendMessage(colorize(getConfig().getString("messages.prefix") + " " +
+                getConfig().getString("messages.ice-received")
+                        .replace("%player%", attacker.getName())
+                        .replace("%duration%", String.valueOf(duration))));
+    }
+
+    /**
+     * Crea una cápsula de hielo alrededor del jugador
+     */
+    private void createIceCapsule(Player player, int duration) {
+        org.bukkit.Location center = player.getLocation();
+        List<org.bukkit.Location> iceBlocks = new ArrayList<>();
+        
+        // Crear una cápsula de hielo hueca de 3x3x3 centrada en el jugador
+        for (int x = -1; x <= 1; x++) {
+            for (int y = 0; y <= 2; y++) {
+                for (int z = -1; z <= 1; z++) {
+                    // Solo crear bloques en los bordes (cápsula hueca)
+                    if (x == -1 || x == 1 || y == 0 || y == 2 || z == -1 || z == 1) {
+                        // No crear bloque en el centro del suelo para que el jugador pueda estar de pie
+                        if (!(y == 0 && x == 0 && z == 0)) {
+                            org.bukkit.Location blockLoc = center.clone().add(x, y, z);
+                            
+                            // Solo reemplazar bloques de aire o bloques no sólidos
+                            if (blockLoc.getBlock().getType() == Material.AIR || 
+                                !blockLoc.getBlock().getType().isSolid()) {
+                                
+                                // Guardar el bloque original
+                                iceBlocks.add(blockLoc.clone());
+                                
+                                // Colocar hielo
+                                blockLoc.getBlock().setType(Material.ICE);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Guardar los bloques de hielo para este jugador
+        iceCapsules.put(player.getUniqueId(), iceBlocks);
+        
+        // Programar la eliminación de la cápsula
+        getServer().getScheduler().scheduleSyncDelayedTask(this, () -> {
+            removeIceCapsule(player.getUniqueId());
+        }, duration * 20L); // Convertir segundos a ticks
+    }
+
+    /**
+     * Elimina la cápsula de hielo de un jugador
+     */
+    private void removeIceCapsule(UUID playerUUID) {
+        List<org.bukkit.Location> iceBlocks = iceCapsules.get(playerUUID);
+        if (iceBlocks != null) {
+            for (org.bukkit.Location loc : iceBlocks) {
+                // Restaurar el bloque original (aire)
+                if (loc.getBlock().getType() == Material.ICE) {
+                    loc.getBlock().setType(Material.AIR);
+                }
+            }
+            iceCapsules.remove(playerUUID);
+        }
+    }
+
+    /**
      * Verifica si un item es compatible con un encantamiento específico
      */
     private boolean isItemValidForEnchant(ItemStack item, String enchantName) {
@@ -525,7 +624,7 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
                 }
             }
             return true;
-        } else if (enchantName.equals("halloweenefy") || enchantName.equals("poison") || enchantName.equals("slowness")) {
+        } else if (enchantName.equals("halloweenefy") || enchantName.equals("poison") || enchantName.equals("slowness") || enchantName.equals("iceaspect")) {
             // Verificar si el item está en la lista de items permitidos
             List<String> allowedItems = getConfig().getStringList("enchants." + enchantName + ".allowed-items");
             for (String allowedItem : allowedItems) {
@@ -718,6 +817,8 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
             return hasPoisonEnchant(item);
         } else if (enchantName.equals("slowness")) {
             return hasSlownessEnchant(item);
+        } else if (enchantName.equals("iceaspect")) {
+            return hasIceAspectEnchant(item);
         }
 
         // Si es un encantamiento que no conocemos específicamente, hacer una verificación genérica
@@ -920,6 +1021,46 @@ public class EnchantsHCN extends JavaPlugin implements Listener {
 
             for (int i = getConfig().getInt("enchants.slowness.max-level"); i >= 1; i--) {
                 List<String> enchantLores = getConfig().getStringList("enchants.slowness.levels." + i + ".lore");
+                for (String loreLine : enchantLores) {
+                    if (loreLine != null && !loreLine.isEmpty()) {
+                        String colorized = colorize(loreLine);
+                        if (lore.contains(colorized)) {
+                            return i;
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    private boolean hasIceAspectEnchant(ItemStack item) {
+        if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
+            ItemMeta meta = item.getItemMeta();
+            List<String> lore = meta.getLore();
+
+            for (int i = 1; i <= getConfig().getInt("enchants.iceaspect.max-level"); i++) {
+                List<String> enchantLores = getConfig().getStringList("enchants.iceaspect.levels." + i + ".lore");
+                for (String loreLine : enchantLores) {
+                    if (loreLine != null && !loreLine.isEmpty()) {
+                        String colorized = colorize(loreLine);
+                        if (lore.contains(colorized)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private int getIceAspectLevel(ItemStack item) {
+        if (item != null && item.hasItemMeta() && item.getItemMeta().hasLore()) {
+            ItemMeta meta = item.getItemMeta();
+            List<String> lore = meta.getLore();
+
+            for (int i = getConfig().getInt("enchants.iceaspect.max-level"); i >= 1; i--) {
+                List<String> enchantLores = getConfig().getStringList("enchants.iceaspect.levels." + i + ".lore");
                 for (String loreLine : enchantLores) {
                     if (loreLine != null && !loreLine.isEmpty()) {
                         String colorized = colorize(loreLine);
