@@ -6,7 +6,7 @@
 
     <groupId>com.wish</groupId>
     <artifactId>EnchantsHCN</artifactId>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <description>Plugin de encantamientos personalizados</description>
 
     <properties>
