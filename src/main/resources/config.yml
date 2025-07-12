@@ -128,7 +128,7 @@ enchants:
       size: 7
       hollow: true
       replace-air-only: true
-      material: LIGHT_BLUE_STAINED_GLASS  # Material del cubo (vidrio celeste)
+      material: STAINED_GLASS:3  # Material del cubo (vidrio celeste - data value 3)
     allowed-items:
       - WOOD_SWORD
       - STONE_SWORD

@@ -19,6 +19,7 @@ public class EffectManager {
     private final EnchantsHCN plugin;
     private Map<UUID, List<org.bukkit.Location>> iceCapsules = new HashMap<>();
     private Map<UUID, Material> iceCapsuleMaterials = new HashMap<>();
+    private Map<UUID, Byte> iceCapsuleDataValues = new HashMap<>();
     
     public EffectManager(EnchantsHCN plugin) {
         this.plugin = plugin;
@@ -151,14 +152,30 @@ public class EffectManager {
         boolean replaceAirOnly = plugin.getConfig().getBoolean("enchants.iceaspect.cube.replace-air-only", true);
         
         // Obtener el material del cubo desde la configuración
-        String materialName = plugin.getConfig().getString("enchants.iceaspect.cube.material", "LIGHT_BLUE_STAINED_GLASS");
-        Material cubeMaterial;
-        try {
-            cubeMaterial = Material.valueOf(materialName.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            // Si el material no es válido, usar vidrio celeste por defecto
-            cubeMaterial = Material.LIGHT_BLUE_STAINED_GLASS;
-            plugin.getLogger().warning("Material inválido en configuración: " + materialName + ". Usando LIGHT_BLUE_STAINED_GLASS por defecto.");
+        String materialName = plugin.getConfig().getString("enchants.iceaspect.cube.material", "STAINED_GLASS:3");
+        Material cubeMaterial = Material.STAINED_GLASS;
+        byte dataValue = 3; // Light blue por defecto
+        
+        // Parsear material y data value si está especificado
+        if (materialName.contains(":")) {
+            String[] parts = materialName.split(":");
+            try {
+                cubeMaterial = Material.valueOf(parts[0].toUpperCase());
+                dataValue = Byte.parseByte(parts[1]);
+            } catch (IllegalArgumentException e) {
+                cubeMaterial = Material.STAINED_GLASS;
+                dataValue = 3;
+                plugin.getLogger().warning("Material inválido en configuración: " + materialName + ". Usando STAINED_GLASS:3 por defecto.");
+            }
+        } else {
+            try {
+                cubeMaterial = Material.valueOf(materialName.toUpperCase());
+                dataValue = 0; // Sin data value para materiales simples
+            } catch (IllegalArgumentException e) {
+                cubeMaterial = Material.STAINED_GLASS;
+                dataValue = 3;
+                plugin.getLogger().warning("Material inválido en configuración: " + materialName + ". Usando STAINED_GLASS:3 por defecto.");
+            }
         }
         
         // Calcular el rango del cubo (size/2 en cada dirección)
@@ -200,8 +217,11 @@ public class EffectManager {
                             // Guardar el bloque original
                             iceBlocks.add(blockLoc.clone());
                             
-                            // Colocar el material configurado
+                            // Colocar el material configurado con data value
                             blockLoc.getBlock().setType(cubeMaterial);
+                            if (dataValue > 0) {
+                                blockLoc.getBlock().setData(dataValue);
+                            }
                         }
                     }
                 }
@@ -212,9 +232,14 @@ public class EffectManager {
         iceCapsules.put(attacker.getUniqueId(), iceBlocks);
         iceCapsules.put(victim.getUniqueId(), iceBlocks);
         
-        // Guardar el material usado para ambos jugadores
-        iceCapsuleMaterials.put(attacker.getUniqueId(), cubeMaterial);
-        iceCapsuleMaterials.put(victim.getUniqueId(), cubeMaterial);
+        // Guardar el material y data value usado para ambos jugadores
+        String materialData = cubeMaterial.name() + ":" + dataValue;
+        iceCapsuleMaterials.put(attacker.getUniqueId(), Material.valueOf(materialData.split(":")[0]));
+        iceCapsuleMaterials.put(victim.getUniqueId(), Material.valueOf(materialData.split(":")[0]));
+        
+        // Guardar data values por separado
+        iceCapsuleDataValues.put(attacker.getUniqueId(), dataValue);
+        iceCapsuleDataValues.put(victim.getUniqueId(), dataValue);
         
         // Programar la eliminación del cubo
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
@@ -229,16 +254,25 @@ public class EffectManager {
     public void removeIceCapsule(UUID playerUUID) {
         List<org.bukkit.Location> iceBlocks = iceCapsules.get(playerUUID);
         Material capsuleMaterial = iceCapsuleMaterials.get(playerUUID);
+        Byte capsuleDataValue = iceCapsuleDataValues.get(playerUUID);
         
         if (iceBlocks != null) {
             for (org.bukkit.Location loc : iceBlocks) {
-                // Restaurar el bloque original (aire) si es el material del cubo
+                // Restaurar el bloque original (aire) si es el material y data value del cubo
                 if (capsuleMaterial != null && loc.getBlock().getType() == capsuleMaterial) {
-                    loc.getBlock().setType(Material.AIR);
+                    // Verificar data value si es necesario
+                    if (capsuleDataValue != null && capsuleDataValue > 0) {
+                        if (loc.getBlock().getData() == capsuleDataValue) {
+                            loc.getBlock().setType(Material.AIR);
+                        }
+                    } else {
+                        loc.getBlock().setType(Material.AIR);
+                    }
                 }
             }
             iceCapsules.remove(playerUUID);
             iceCapsuleMaterials.remove(playerUUID);
+            iceCapsuleDataValues.remove(playerUUID);
         }
     }
     
