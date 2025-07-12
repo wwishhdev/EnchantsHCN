@@ -18,6 +18,7 @@ public class EffectManager {
     
     private final EnchantsHCN plugin;
     private Map<UUID, List<org.bukkit.Location>> iceCapsules = new HashMap<>();
+    private Map<UUID, Material> iceCapsuleMaterials = new HashMap<>();
     
     public EffectManager(EnchantsHCN plugin) {
         this.plugin = plugin;
@@ -149,6 +150,17 @@ public class EffectManager {
         boolean hollow = plugin.getConfig().getBoolean("enchants.iceaspect.cube.hollow", true);
         boolean replaceAirOnly = plugin.getConfig().getBoolean("enchants.iceaspect.cube.replace-air-only", true);
         
+        // Obtener el material del cubo desde la configuración
+        String materialName = plugin.getConfig().getString("enchants.iceaspect.cube.material", "LIGHT_BLUE_STAINED_GLASS");
+        Material cubeMaterial;
+        try {
+            cubeMaterial = Material.valueOf(materialName.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            // Si el material no es válido, usar vidrio celeste por defecto
+            cubeMaterial = Material.LIGHT_BLUE_STAINED_GLASS;
+            plugin.getLogger().warning("Material inválido en configuración: " + materialName + ". Usando LIGHT_BLUE_STAINED_GLASS por defecto.");
+        }
+        
         // Calcular el rango del cubo (size/2 en cada dirección)
         int halfSize = size / 2;
         
@@ -188,8 +200,8 @@ public class EffectManager {
                             // Guardar el bloque original
                             iceBlocks.add(blockLoc.clone());
                             
-                            // Colocar hielo
-                            blockLoc.getBlock().setType(Material.ICE);
+                            // Colocar el material configurado
+                            blockLoc.getBlock().setType(cubeMaterial);
                         }
                     }
                 }
@@ -199,6 +211,10 @@ public class EffectManager {
         // Guardar los bloques de hielo para ambos jugadores
         iceCapsules.put(attacker.getUniqueId(), iceBlocks);
         iceCapsules.put(victim.getUniqueId(), iceBlocks);
+        
+        // Guardar el material usado para ambos jugadores
+        iceCapsuleMaterials.put(attacker.getUniqueId(), cubeMaterial);
+        iceCapsuleMaterials.put(victim.getUniqueId(), cubeMaterial);
         
         // Programar la eliminación del cubo
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
@@ -212,14 +228,17 @@ public class EffectManager {
      */
     public void removeIceCapsule(UUID playerUUID) {
         List<org.bukkit.Location> iceBlocks = iceCapsules.get(playerUUID);
+        Material capsuleMaterial = iceCapsuleMaterials.get(playerUUID);
+        
         if (iceBlocks != null) {
             for (org.bukkit.Location loc : iceBlocks) {
-                // Restaurar el bloque original (aire)
-                if (loc.getBlock().getType() == Material.ICE) {
+                // Restaurar el bloque original (aire) si es el material del cubo
+                if (capsuleMaterial != null && loc.getBlock().getType() == capsuleMaterial) {
                     loc.getBlock().setType(Material.AIR);
                 }
             }
             iceCapsules.remove(playerUUID);
+            iceCapsuleMaterials.remove(playerUUID);
         }
     }
     

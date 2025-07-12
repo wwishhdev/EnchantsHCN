@@ -125,9 +125,10 @@ enchants:
     max-level: 3
     # Configuración del cubo de hielo
     cube:
-      size: 6
+      size: 7
       hollow: true
       replace-air-only: true
+      material: LIGHT_BLUE_STAINED_GLASS  # Material del cubo (vidrio celeste)
     allowed-items:
       - WOOD_SWORD
       - STONE_SWORD
