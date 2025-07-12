@@ -95,7 +95,6 @@ public class ClanHook {
     
     /**
      * Verifica si dos jugadores son aliados
-     * NOTA: Implementación temporal - la API de AdvancedClans no expone métodos de alianza públicamente
      */
     public boolean areAllies(Player attacker, Player victim) {
         if (!enabled || clansApi == null) {
@@ -114,10 +113,11 @@ public class ClanHook {
                 return false;
             }
             
-            // TODO: Implementar verificación de aliados cuando la API lo permita
-            // Por ahora retornamos false ya que no tenemos acceso a los métodos de alianza
-            // La funcionalidad de prevenir daño entre clanes sigue funcionando
-            return false;
+            Clan clan1 = attackerClan.getClan();
+            Clan clan2 = victimClan.getClan();
+            
+            // Verificar si son aliados usando el método isAlly
+            return clan1.isAlly(clan2) || clan2.isAlly(clan1);
         } catch (Exception e) {
             plugin.getLogger().warning("Error al verificar aliados: " + e.getMessage());
             return false;
