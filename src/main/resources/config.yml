@@ -1,3 +1,9 @@
+# Configuración del hook con AdvancedClans
+advancedclans:
+  enabled: true
+  prevent-clan-damage: true
+  prevent-ally-damage: true
+
 messages:
   prefix: ""
   reload: "&aLa configuración ha sido recargada"
@@ -117,6 +123,11 @@ enchants:
     name: "Ice Aspect"
     enabled: true
     max-level: 3
+    # Configuración de la cápsula de hielo
+    capsule:
+      radius: 2.5
+      hollow: true
+      replace-air-only: true
     allowed-items:
       - WOOD_SWORD
       - STONE_SWORD

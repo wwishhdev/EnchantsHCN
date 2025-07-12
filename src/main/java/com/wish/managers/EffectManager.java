@@ -133,26 +133,51 @@ public class EffectManager {
         org.bukkit.Location center = player.getLocation();
         List<org.bukkit.Location> iceBlocks = new ArrayList<>();
         
-        // Radio de la cápsula esférica
-        double radius = 2.5;
+        // Obtener configuración de la cápsula
+        double radius = plugin.getConfig().getDouble("enchants.iceaspect.radius", 2.5);
+        boolean hollow = plugin.getConfig().getBoolean("enchants.iceaspect.hollow", true);
+        boolean replaceAirOnly = plugin.getConfig().getBoolean("enchants.iceaspect.replace-air-only", true);
         
-        // Crear una cápsula de hielo esférica hueca más grande
-        for (int x = -3; x <= 3; x++) {
-            for (int y = 0; y <= 4; y++) {
-                for (int z = -3; z <= 3; z++) {
+        // Calcular el rango basado en el radio
+        int range = (int) Math.ceil(radius) + 1;
+        
+        // Crear la cápsula de hielo
+        for (int x = -range; x <= range; x++) {
+            for (int y = 0; y <= range + 1; y++) {
+                for (int z = -range; z <= range; z++) {
                     // Calcular la distancia desde el centro
                     double distance = Math.sqrt(x * x + (y - 2) * (y - 2) + z * z);
                     
-                    // Solo crear bloques en el borde de la esfera (cápsula hueca)
-                    if (distance >= radius - 0.5 && distance <= radius + 0.5) {
+                    boolean shouldPlace = false;
+                    
+                    if (hollow) {
+                        // Solo crear bloques en el borde de la esfera (cápsula hueca)
+                        if (distance >= radius - 0.5 && distance <= radius + 0.5) {
+                            shouldPlace = true;
+                        }
+                    } else {
+                        // Crear una esfera sólida
+                        if (distance <= radius) {
+                            shouldPlace = true;
+                        }
+                    }
+                    
+                    if (shouldPlace) {
                         // No crear bloques en el suelo central para que los jugadores puedan estar de pie
                         if (!(y == 0 && Math.abs(x) <= 1 && Math.abs(z) <= 1)) {
                             org.bukkit.Location blockLoc = center.clone().add(x, y, z);
                             
-                            // Solo reemplazar bloques de aire o bloques no sólidos
-                            if (blockLoc.getBlock().getType() == Material.AIR || 
-                                !blockLoc.getBlock().getType().isSolid()) {
-                                
+                            boolean canReplace = false;
+                            if (replaceAirOnly) {
+                                // Solo reemplazar bloques de aire
+                                canReplace = blockLoc.getBlock().getType() == Material.AIR;
+                            } else {
+                                // Reemplazar aire o bloques no sólidos
+                                canReplace = blockLoc.getBlock().getType() == Material.AIR || 
+                                           !blockLoc.getBlock().getType().isSolid();
+                            }
+                            
+                            if (canReplace) {
                                 // Guardar el bloque original
                                 iceBlocks.add(blockLoc.clone());
                                 

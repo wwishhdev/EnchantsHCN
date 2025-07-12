@@ -31,6 +31,15 @@
             <version>1.8.8-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
+        
+        <!-- AdvancedClans API -->
+        <dependency>
+            <groupId>me.jose.advancedclans</groupId>
+            <artifactId>AdvancedClans</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/AdvancedClans.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>

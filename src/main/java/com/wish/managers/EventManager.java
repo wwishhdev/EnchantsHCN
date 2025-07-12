@@ -102,8 +102,12 @@ public class EventManager implements Listener {
             return;
         }
 
+        // Verificar si se debe aplicar efectos (clanes/aliados)
+        // Esta verificación se hace aquí para evitar repetir en cada efecto
+        boolean shouldApplyEffects = plugin.getClanHook().shouldApplyEffect(attacker, victim);
+
         // Verificar si el arma tiene el encantamiento Halloweenefy
-        if (enchantManager.hasHalloweenefyEnchant(weapon)) {
+        if (enchantManager.hasHalloweenefyEnchant(weapon) && shouldApplyEffects) {
             int level = enchantManager.getHalloweenefyLevel(weapon);
             int chance = plugin.getConfig().getInt("enchants.halloweenefy.levels." + level + ".chance");
 
@@ -115,7 +119,7 @@ public class EventManager implements Listener {
         }
 
         // Verificar si el arma tiene el encantamiento Poison
-        if (enchantManager.hasPoisonEnchant(weapon)) {
+        if (enchantManager.hasPoisonEnchant(weapon) && shouldApplyEffects) {
             int level = enchantManager.getPoisonLevel(weapon);
             int chance = plugin.getConfig().getInt("enchants.poison.levels." + level + ".chance");
 
@@ -127,7 +131,7 @@ public class EventManager implements Listener {
         }
 
         // Verificar si el arma tiene el encantamiento Slowness
-        if (enchantManager.hasSlownessEnchant(weapon)) {
+        if (enchantManager.hasSlownessEnchant(weapon) && shouldApplyEffects) {
             int level = enchantManager.getSlownessLevel(weapon);
             int chance = plugin.getConfig().getInt("enchants.slowness.levels." + level + ".chance");
 
@@ -139,7 +143,7 @@ public class EventManager implements Listener {
         }
 
         // Verificar si el arma tiene el encantamiento Ice Aspect
-        if (enchantManager.hasIceAspectEnchant(weapon)) {
+        if (enchantManager.hasIceAspectEnchant(weapon) && shouldApplyEffects) {
             int level = enchantManager.getIceAspectLevel(weapon);
             int chance = plugin.getConfig().getInt("enchants.iceaspect.levels." + level + ".chance");
 

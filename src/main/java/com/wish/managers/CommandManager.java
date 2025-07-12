@@ -49,6 +49,10 @@ public class CommandManager implements CommandExecutor {
             return true;
         }
         plugin.reloadConfig();
+        
+        // Recargar configuración del ClanHook
+        plugin.getClanHook().reload();
+        
         sender.sendMessage(colorize(plugin.getConfig().getString("messages.prefix") + " " +
                 plugin.getConfig().getString("messages.reload")));
         return true;

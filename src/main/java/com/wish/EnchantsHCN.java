@@ -1,5 +1,6 @@
 package com.wish;
 
+import com.wish.hooks.ClanHook;
 import com.wish.managers.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -12,11 +13,15 @@ public class EnchantsHCN extends JavaPlugin {
     private BookManager bookManager;
     private CommandManager commandManager;
     private EventManager eventManager;
+    private ClanHook clanHook;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
 
+        // Inicializar hooks
+        clanHook = new ClanHook(this);
+        
         // Inicializar managers
         enchantManager = new EnchantManager(this);
         effectManager = new EffectManager(this);
@@ -55,5 +60,9 @@ public class EnchantsHCN extends JavaPlugin {
     
     public BookManager getBookManager() {
         return bookManager;
+    }
+    
+    public ClanHook getClanHook() {
+        return clanHook;
     }
 }
