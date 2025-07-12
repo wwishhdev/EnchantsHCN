@@ -111,8 +111,8 @@ public class EffectManager {
         // Obtener la duración del efecto desde la configuración
         int duration = plugin.getConfig().getInt("enchants.iceaspect.levels." + level + ".duration", 5);
 
-        // Crear la cápsula de hielo
-        createIceCapsule(victim, duration);
+        // Crear la cápsula de hielo centrada entre ambos jugadores
+        createIceCapsule(attacker, victim, duration);
 
         // Mensajes a los jugadores
         attacker.sendMessage(colorize(plugin.getConfig().getString("messages.prefix") + " " +
@@ -127,75 +127,83 @@ public class EffectManager {
     }
     
     /**
-     * Crea una cápsula de hielo alrededor del jugador
+     * Crea un cubo de hielo alrededor de ambos jugadores
      */
-    private void createIceCapsule(Player player, int duration) {
-        org.bukkit.Location center = player.getLocation();
+    private void createIceCapsule(Player attacker, Player victim, int duration) {
+        // Calcular la posición central entre ambos jugadores
+        org.bukkit.Location attackerLoc = attacker.getLocation();
+        org.bukkit.Location victimLoc = victim.getLocation();
+        
+        // Obtener el punto medio entre ambos jugadores
+        double centerX = (attackerLoc.getX() + victimLoc.getX()) / 2.0;
+        double centerZ = (attackerLoc.getZ() + victimLoc.getZ()) / 2.0;
+        double centerY = Math.min(attackerLoc.getY(), victimLoc.getY()); // Usar la Y más baja
+        
+        // Crear la ubicación central en el suelo
+        org.bukkit.Location center = new org.bukkit.Location(attackerLoc.getWorld(), 
+                Math.floor(centerX) + 0.5, Math.floor(centerY), Math.floor(centerZ) + 0.5);
         List<org.bukkit.Location> iceBlocks = new ArrayList<>();
         
-        // Obtener configuración de la cápsula
-        double radius = plugin.getConfig().getDouble("enchants.iceaspect.radius", 2.5);
-        boolean hollow = plugin.getConfig().getBoolean("enchants.iceaspect.hollow", true);
-        boolean replaceAirOnly = plugin.getConfig().getBoolean("enchants.iceaspect.replace-air-only", true);
+        // Obtener configuración del cubo
+        int size = plugin.getConfig().getInt("enchants.iceaspect.cube.size", 6);
+        boolean hollow = plugin.getConfig().getBoolean("enchants.iceaspect.cube.hollow", true);
+        boolean replaceAirOnly = plugin.getConfig().getBoolean("enchants.iceaspect.cube.replace-air-only", true);
         
-        // Calcular el rango basado en el radio
-        int range = (int) Math.ceil(radius) + 1;
+        // Calcular el rango del cubo (size/2 en cada dirección)
+        int halfSize = size / 2;
         
-        // Crear la cápsula de hielo
-        for (int x = -range; x <= range; x++) {
-            for (int y = 0; y <= range + 1; y++) {
-                for (int z = -range; z <= range; z++) {
-                    // Calcular la distancia desde el centro
-                    double distance = Math.sqrt(x * x + (y - 2) * (y - 2) + z * z);
-                    
+        // Crear el cubo de hielo
+        for (int x = -halfSize; x <= halfSize; x++) {
+            for (int y = 0; y <= size - 1; y++) { // Altura del cubo
+                for (int z = -halfSize; z <= halfSize; z++) {
                     boolean shouldPlace = false;
                     
                     if (hollow) {
-                        // Solo crear bloques en el borde de la esfera (cápsula hueca)
-                        if (distance >= radius - 0.5 && distance <= radius + 0.5) {
+                        // Solo crear bloques en las paredes del cubo (cubo hueco)
+                        // Paredes laterales, suelo y techo
+                        if (x == -halfSize || x == halfSize || // Paredes X
+                            z == -halfSize || z == halfSize || // Paredes Z
+                            y == 0 || y == size - 1) {         // Suelo y techo
                             shouldPlace = true;
                         }
                     } else {
-                        // Crear una esfera sólida
-                        if (distance <= radius) {
-                            shouldPlace = true;
-                        }
+                        // Crear un cubo sólido
+                        shouldPlace = true;
                     }
                     
                     if (shouldPlace) {
-                        // No crear bloques en el suelo central para que los jugadores puedan estar de pie
-                        if (!(y == 0 && Math.abs(x) <= 1 && Math.abs(z) <= 1)) {
-                            org.bukkit.Location blockLoc = center.clone().add(x, y, z);
+                        org.bukkit.Location blockLoc = center.clone().add(x, y, z);
+                        
+                        boolean canReplace = false;
+                        if (replaceAirOnly) {
+                            // Solo reemplazar bloques de aire
+                            canReplace = blockLoc.getBlock().getType() == Material.AIR;
+                        } else {
+                            // Reemplazar aire o bloques no sólidos
+                            canReplace = blockLoc.getBlock().getType() == Material.AIR || 
+                                       !blockLoc.getBlock().getType().isSolid();
+                        }
+                        
+                        if (canReplace) {
+                            // Guardar el bloque original
+                            iceBlocks.add(blockLoc.clone());
                             
-                            boolean canReplace = false;
-                            if (replaceAirOnly) {
-                                // Solo reemplazar bloques de aire
-                                canReplace = blockLoc.getBlock().getType() == Material.AIR;
-                            } else {
-                                // Reemplazar aire o bloques no sólidos
-                                canReplace = blockLoc.getBlock().getType() == Material.AIR || 
-                                           !blockLoc.getBlock().getType().isSolid();
-                            }
-                            
-                            if (canReplace) {
-                                // Guardar el bloque original
-                                iceBlocks.add(blockLoc.clone());
-                                
-                                // Colocar hielo
-                                blockLoc.getBlock().setType(Material.ICE);
-                            }
+                            // Colocar hielo
+                            blockLoc.getBlock().setType(Material.ICE);
                         }
                     }
                 }
             }
         }
         
-        // Guardar los bloques de hielo para este jugador
-        iceCapsules.put(player.getUniqueId(), iceBlocks);
+        // Guardar los bloques de hielo para ambos jugadores
+        iceCapsules.put(attacker.getUniqueId(), iceBlocks);
+        iceCapsules.put(victim.getUniqueId(), iceBlocks);
         
-        // Programar la eliminación de la cápsula
+        // Programar la eliminación del cubo
         plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
-            removeIceCapsule(player.getUniqueId());
+            removeIceCapsule(attacker.getUniqueId());
+            removeIceCapsule(victim.getUniqueId());
         }, duration * 20L); // Convertir segundos a ticks
     }
     

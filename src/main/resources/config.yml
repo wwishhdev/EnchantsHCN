@@ -123,9 +123,9 @@ enchants:
     name: "Ice Aspect"
     enabled: true
     max-level: 3
-    # Configuración de la cápsula de hielo
-    capsule:
-      radius: 2.5
+    # Configuración del cubo de hielo
+    cube:
+      size: 6
       hollow: true
       replace-air-only: true
     allowed-items:
